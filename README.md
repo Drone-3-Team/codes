@@ -1,7 +1,5 @@
 # codes
 
-我也是第一次使用git来管理代码
+lidar.py是控制飞机飞行、获取传感器数据的python文件
 
-可以使用github desktop来比较方便地使用git
-
-大家可以试着在lidar.py最后一行添加一个注释看看能不能push到这
+setting.json替换用户目录/Airsim下的jason文件，作用是定义飞机的构型，给它加上一个激光雷达
