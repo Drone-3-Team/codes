@@ -13,3 +13,9 @@ setting.json替换用户目录/Airsim下的jason文件，作用是定义飞机�
   5、打开里面的场景，并把游戏模式重定义成Airsim Gamemode
 
 ~属于是回忆中的大致方法，有一些名称可能不甚准确，但大意没错~
+
+## 使用python API控制飞机、获取数据的方法
+
+控制用的python文件**不必**与unreal项目在同一个目录下
+
+只需在python代码里import airsim即可调用API控制正在运行的模拟环境
