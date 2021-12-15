@@ -11,3 +11,5 @@ setting.json替换用户目录/Airsim下的jason文件，作用是定义飞机�
   3、打开项目文件夹找到Content，把TopDownInteriors文件夹直接放进去
   4、用VS打开项目运行进入虚幻编辑器，下方就可以找到TopDownInteriors的文件夹
   5、打开里面的场景，并把游戏模式重定义成Airsim Gamemode
+
+~属于是回忆中的大致方法，有一些名称可能不甚准确，但大意没错~
