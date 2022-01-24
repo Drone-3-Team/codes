@@ -54,8 +54,11 @@ class CNN_Net(nn.Module):
         super(CNN_Net, self).__init__()
         self.vision = nn.Sequential(
             nn.MaxPool2d(kernel_size=5, stride=5),
+            #nn.MaxPool2d(kernel_size=10, stride=10),
             nn.Conv2d(1, 15, kernel_size=2),
             nn.BatchNorm2d(15),
+            #nn.Conv2d(25, 25, kernel_size=5),
+            #nn.BatchNorm2d(25),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(15, 5, kernel_size=2),
             nn.ReLU(inplace=True)
@@ -69,7 +72,7 @@ class CNN_Net(nn.Module):
         self.fc1.weight.data.normal_(0,0.1)
         self.fc2 = nn.Linear(50,30)
         self.fc2.weight.data.normal_(0,0.1)
-        self.out = nn.Linear(30,1)
+        self.out = nn.Linear(30,NUM_ACTIONS)
         self.out.weight.data.normal_(0,0.1)
         
 
@@ -130,10 +133,10 @@ class DQN():
         #经验池
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
         batch_memory = self.memory[sample_index, :]
-        batch_state = torch.FloatTensor(batch_memory[:,:,:, :NUM_STATES])
+        batch_state = torch.FloatTensor(batch_memory[:, :NUM_STATES])
         batch_action = torch.LongTensor(batch_memory[:, NUM_STATES:NUM_STATES+1].astype(int))
         batch_reward = torch.FloatTensor(batch_memory[:, NUM_STATES+1:NUM_STATES+2])
-        batch_next_state = torch.FloatTensor(batch_memory[:,:,-NUM_STATES:])
+        batch_next_state = torch.FloatTensor(batch_memory[:,-NUM_STATES:])
 
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
@@ -183,13 +186,12 @@ def main():
             action = dqn.choose_action(visual_state)
             next_state, _ , done, info = env.step(action)
             x, v = next_state
-            next_visual_state = to_grayscale(env.render('rgb_array'))
             if x>max_x:
                 max_x = x
             
             reward = reward_func(max_x,best_x,0)
 
-            dqn.store_transition(visual_state, action, reward, next_visual_state)
+            dqn.store_transition(state, action, reward, next_state)
             ep_reward += reward
 
             if dqn.memory_counter >= MEMORY_CAPACITY:
