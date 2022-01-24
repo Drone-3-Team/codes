@@ -1,5 +1,3 @@
-from argparse import Action
-from tkinter import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -41,11 +39,6 @@ def to_grayscale(rgb_array):
     grayscale_array[0,0] /= 3*255
     return torch.Tensor(grayscale_array)
 
-def stack_visual_frames(stack,new_frame):
-    np.delete(stack,[])
-
-
-
 NUM_STATES = env.observation_space.shape[0]
 ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
 
@@ -55,11 +48,8 @@ class CNN_Net(nn.Module):
         super(CNN_Net, self).__init__()
         self.vision = nn.Sequential(
             nn.MaxPool2d(kernel_size=5, stride=5),
-            #nn.MaxPool2d(kernel_size=10, stride=10),
             nn.Conv2d(1, 15, kernel_size=2),
             nn.BatchNorm2d(15),
-            #nn.Conv2d(25, 25, kernel_size=5),
-            #nn.BatchNorm2d(25),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(15, 5, kernel_size=2),
             nn.ReLU(inplace=True)
@@ -167,7 +157,7 @@ def reward_func(x_max,best,last):
 
 def main():
     dqn = DQN()
-    episodes = 10000
+    episodes = 100
     print("Collecting Experience....")
     reward_list = []
     plt.ion()
