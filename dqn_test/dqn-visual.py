@@ -41,7 +41,8 @@ def to_grayscale(rgb_array):
     grayscale_array[0,0] /= 3*255
     return torch.Tensor(grayscale_array)
 
-
+def stack_visual_frames(stack,new_frame):
+    np.delete(stack,[])
 
 
 
