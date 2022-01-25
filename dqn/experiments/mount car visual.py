@@ -12,18 +12,18 @@ env = env.unwrapped
 
 # hyper parameters
 BATCH_SIZE = 256
-LR = 0.1
+LR = 0.05
 GAMMA = 0.9
-EPISILO = 0.7
-MEMORY_CAPACITY = 50000000
-Q_NETWORK_ITERATION = 50
-MAX_ROUND = 250
+EPISILO = 0.9
+MEMORY_CAPACITY = 256
+Q_NETWORK_ITERATION = 100
+MAX_ROUND = 500
 NUM_ACTIONS = env.action_space.n
 NUM_STATES = env.observation_space.shape[0]
 ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
 
 
-STACK_HEIGHT = 30
+STACK_HEIGHT = 5
 IMG_H = 400
 IMG_W = 600
 
@@ -57,19 +57,19 @@ class Vision_Net(nn.Module):
     def __init__(self) -> None:
         super(Vision_Net, self).__init__()
         self.covLayer1 = nn.Sequential(
-            nn.MaxPool3d(kernel_size=(5,5,5),stride=(1,5,5)),
-            nn.Conv3d(in_channels=1,out_channels=5,kernel_size=(5,5,5),stride=(3,5,5)),
+            nn.MaxPool3d(kernel_size=(1,5,5),stride=(1,5,5)),
+            nn.Conv3d(in_channels=1,out_channels=5,kernel_size=(1,5,5),stride=(3,5,5)),
             nn.BatchNorm3d(num_features=5),
         )
 
         self.covLayer2 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(1,2,2),stride=(1,2,2)),
-            nn.Conv3d(in_channels=5,out_channels=5,kernel_size=(2,2,2),stride=(2,2,2)),
+            nn.Conv3d(in_channels=5,out_channels=5,kernel_size=(1,2,2),stride=(1,2,2)),
             nn.BatchNorm3d(num_features=5),
         )
 
         self.fcLayer = nn.Sequential(
-            nn.Linear(480,20),
+            nn.Linear(240,20),
             nn.ReLU(inplace=True),
             nn.Linear(20,2),
         )
@@ -192,15 +192,13 @@ if __name__ == '__main__':
             rgbImg = env.render('rgb_array')
             statep = dqn.getCarState(rgbImg)
             dqn.visiual_learn(state)
-            print(statep.detach().numpy()-state,statep.detach().numpy(),state)
+            #print(statep.detach().numpy()-state,statep.detach().numpy(),state)
+            
             action = dqn.act(statep)
-
+            print(action)
             next_state, _ , done, info = env.step(action)
             x, v = next_state
-            if v>0 :
-                next_state[1] = 1
-            else:
-                next_state[1] = -1
+
             if x>max_x:
                 max_x = x
             
@@ -210,7 +208,7 @@ if __name__ == '__main__':
             ep_reward += reward
 
             if dqn.memCnt >= MEMORY_CAPACITY:
-                dqn.actor_learn(x)
+                dqn.actor_learn()
                 if done:
                     print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))
             if done or round_count>MAX_ROUND:
