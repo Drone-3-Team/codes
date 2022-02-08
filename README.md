@@ -1,5 +1,17 @@
 # codes
 
+## 有用的链接
+
+🔗<https://zhuanlan.zhihu.com/p/38056115>🔗torch存取模型以及使用预训练模型
+
+🔗<https://zhuanlan.zhihu.com/p/31778008>🔗一些关于无人机避障方法的介绍，以及在dji pantom上的实现
+
+🔗<https://github.com/microsoft/AirSim/blob/master/PythonClient/reinforcement_learning/dqn_drone.py>🔗
+🔗<https://microsoft.github.io/AirSim/reinforcement_learning/#gym-wrapper>🔗
+使用airsim构建gym风格的强化学习环境
+
+🔗<https://github.com/DLR-RM/stable-baselines3>🔗stable-baselines3.内含很多现成的算法
+
 ## 仓库结构
 
     AI_v1：第一版模型
