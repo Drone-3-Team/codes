@@ -23,6 +23,9 @@ STACK_HEIGHT = 5
 IMG_H = 400
 IMG_W = 600
 
+# 初始化用于训练的环境
+trainEnv = env.AirSimDroneEnv()
+
 # 深度预测网络.暂时不使用
 class DepthPredict():
     def __init__(self) -> None:
@@ -79,8 +82,8 @@ class DQN():
 
         self.learnStepCNT = 0
         self.memCnt = 0
-        self.expMem = np.zeros((MEMORY_CAPACITY, NUM_STATES * 2 + 2))
-        self.stateMem = torch.rand(2,dtype=float)
+        self.stateMem = np.zeros((MEMORY_CAPACITY,2,IMG_H,IMG_W))
+        self.expMem = np.zeros((MEMORY_CAPACITY, 2))
 
         self.optimizer0 = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.lossFn0 = nn.MSELoss()
@@ -104,7 +107,9 @@ class DQN():
 
     def storeTransation(self,state,action,reward,nextState):
         index = self.memCnt % MEMORY_CAPACITY        
-        self.expMem[index,:] = np.hstack((state,[action,reward],nextState))
+        self.expMem[index,:] = np.hstack([action,reward])
+        self.stateMem[index,0,:] = state
+        self.stateMem[index,1,:] = nextState
         self.memCnt += 1
 
     def visiual_learn(self,envState):
@@ -122,11 +127,13 @@ class DQN():
 
         # 从经验池取样
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
-        batch_memory = self.expMem[sample_index, :]
-        batch_state = torch.FloatTensor(batch_memory[:, :NUM_STATES])
-        batch_action = torch.LongTensor(batch_memory[:, NUM_STATES:NUM_STATES+1].astype(int))
-        batch_reward = torch.FloatTensor(batch_memory[:, NUM_STATES+1:NUM_STATES+2])
-        batch_next_state = torch.FloatTensor(batch_memory[:,-NUM_STATES:])
+        batch_ExpMem = self.expMem[sample_index, :]
+        batch_stateMem = self.stateMem[sample_index, :]
+        
+        batch_state = torch.FloatTensor(batch_stateMem[:, 0])
+        batch_action = torch.LongTensor(batch_ExpMem[:, 0].astype(int))
+        batch_reward = torch.FloatTensor(batch_ExpMem[:, 1])
+        batch_next_state = torch.FloatTensor(batch_stateMem[:,1:])
 
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
@@ -138,11 +145,14 @@ class DQN():
         loss.backward()
         self.optimizer0.step()
 
-    def learn():
+    def learn(self):
         pass
+        # 在环境中训练多次，产生数个模型
 
     def load(path):
+        # 读已训练模型最优的参数
         pass
 
     def save(path):
+        # 保存已训练模型的参数
         pass
