@@ -1,3 +1,4 @@
+import copy
 from turtle import forward
 import torch
 import torch.nn as nn
@@ -19,6 +20,7 @@ NUM_STATES = env.observation_space.shape[0]
 ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
 
 
+EPISODES = 400
 STACK_HEIGHT = 5
 IMG_H = 400
 IMG_W = 600
@@ -93,6 +95,8 @@ class DQN():
 
         self.imgStack = torch.ones([STACK_HEIGHT,IMG_H,IMG_W],dtype=torch.float)
 
+    def getDepth(self,Img):
+        return DepthPredict.forward(Img)
 
     def predict(self,state):
         state = torch.unsqueeze(torch.FloatTensor(state), 0) # get a 1D array
@@ -146,8 +150,48 @@ class DQN():
         self.optimizer0.step()
 
     def learn(self):
-        pass
-        # 在环境中训练多次，产生数个模型
+        reward_list = []
+        plt.ion()
+        fig, ax = plt.subplots()
+        for i in range(EPISODES):
+            round_count = 0
+            max_x = -10.0
+            state = env.reset()
+            ep_reward = 0
+            while True:
+                round_count += 1
+
+                Img = trainEnv.get_obs()
+                statep = self.getDepth(Img)
+                self.visiual_learn(state)
+                
+                action = self.act(statep)
+                #print(action)
+                next_state, _ , done, info = trainEnv.step(action)
+                trainEnv.do_action(action)
+                
+                reward = trainEnv.compute_reward()
+
+                self.storeTransation(state, action, reward, next_state)
+                ep_reward += reward
+
+                if self.memCnt >= MEMORY_CAPACITY:
+                    self.actor_learn()
+                    if done:
+                        print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))
+                if done or round_count>MAX_ROUND:
+                    break
+                state = next_state
+
+            r = copy.copy(reward)
+            reward_list.append(r)
+            ax.set_xlim(0,300)
+            ax.plot(reward_list, 'g-', label='total_loss')
+            plt.pause(0.001)
+            print(max_x)
+
+            # 在环境中训练
+            # TODO: 训练多个模型，选最优
 
     def load(path):
         # 读已训练模型最优的参数
