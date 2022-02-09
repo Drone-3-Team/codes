@@ -33,7 +33,6 @@ class Actor_Net(nn.Module):
         self.out.weight.data.normal_(0,0.1)
 
     def forward(self,x):
-        print(x)
         x = self.covLayer1(x)
         x = self.covLayer2(x)
         x = x.view(x.size(0),-1)
@@ -79,7 +78,6 @@ class DQN():
     def storeTransation(self,state,action,reward,nextState):
         index = self.memCnt % hp.MEMORY_CAPACITY        
         self.expMem[index,0] = action
-        print(reward)
         self.expMem[index,1] = reward
         self.stateMem[index,0,:] = state
         self.stateMem[index,1,:] = nextState
@@ -110,6 +108,8 @@ class DQN():
         batch_next_state = torch.FloatTensor(batch_stateMem[:,1:])
 
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
+        # 这里有问题：在评估时需要输入一系列imgstack的tensor，你这里却输入的是一个图像
+        # 应该用getCNNinput 处理一下batch_state和batch_next_state
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
         q_target = batch_reward + hp.GAMMA * q_next.max(1)[0].view(hp.BATCH_SIZE, 1)

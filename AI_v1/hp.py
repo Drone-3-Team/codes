@@ -2,11 +2,11 @@ import yaml
 import scripts.airsim_env as env
 
 # 超参数们
-BATCH_SIZE = 256
+BATCH_SIZE = 10
 LR = 0.05
 GAMMA = 0.9
 EPISILO = 0.9
-MEMORY_CAPACITY = 256
+MEMORY_CAPACITY = 10
 Q_NETWORK_ITERATION = 100
 MAX_ROUND = 500
 

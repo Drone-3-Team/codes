@@ -119,7 +119,7 @@ class AirSimDroneEnv(gym.Env):
 
         # Collision penalty
         if self.is_collision():
-            reward = -100
+            reward = -20
             done = 1
 
         # Check if agent passed through the hole
@@ -133,7 +133,7 @@ class AirSimDroneEnv(gym.Env):
         # (3.7-agent_traveled_x)*sin(60) : end points that camera can capture
         # FOV : 120 deg, sin(60) ~ 1.732 
         elif (target_dist_curr-0.3) > (3.7-agent_traveled_x)*1.732:
-            reward = -100
+            reward = -20
             done = 1
 
         return reward, done
