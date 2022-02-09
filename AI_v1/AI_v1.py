@@ -1,5 +1,4 @@
 import copy
-from turtle import forward
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,6 +23,8 @@ EPISODES = 400
 STACK_HEIGHT = 5
 IMG_H = 400
 IMG_W = 600
+
+path = './'
 
 # 初始化用于训练的环境
 trainEnv = env.AirSimDroneEnv()
@@ -68,13 +69,6 @@ class Actor_Net(nn.Module):
         action_prob = self.out(x)
         return action_prob
 
-'''
-实现的功能:
-.load(文件路径)
-.predict(当前局面)
-.learn(上一轮结果)
-.save(文件路径)
-'''
 class DQN():
 
     def __init__(self) -> None:
@@ -149,6 +143,19 @@ class DQN():
         loss.backward()
         self.optimizer0.step()
 
+    # 保存已训练模型的参数
+    def save(self,path):
+        torch.save(self.eval_net, path)
+        
+
+class Agent():
+    '''
+    用于管理DQN训练
+    TODO: 训练多个智能体,从中选优
+    '''
+    def __init__(self) -> None:
+        self.dqn = DQN()
+    
     def learn(self):
         reward_list = []
         plt.ion()
@@ -190,13 +197,11 @@ class DQN():
             plt.pause(0.001)
             print(max_x)
 
-            # 在环境中训练
-            # TODO: 训练多个模型，选最优
+    def predict(self,obs):
+        return self.dqn.predict(obs)
 
-    def load(path):
-        # 读已训练模型最优的参数
-        pass
+    def save(self):
+        self.dqn.save(path+'text_model.pth')
 
-    def save(path):
-        # 保存已训练模型的参数
-        pass
+    def load(self,path):
+        self.dqn.eval_net = self.dqn.target_net = torch.load(path)
