@@ -1,33 +1,8 @@
-import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import matplotlib.pyplot as plt
-import scripts.airsim_env as env
-
-# 超参数们
-BATCH_SIZE = 256
-LR = 0.05
-GAMMA = 0.9
-EPISILO = 0.9
-MEMORY_CAPACITY = 256
-Q_NETWORK_ITERATION = 100
-MAX_ROUND = 500
-NUM_ACTIONS = env.action_space.n
-NUM_STATES = env.observation_space.shape[0]
-ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
-
-
-EPISODES = 400
-STACK_HEIGHT = 5
-IMG_H = 400
-IMG_W = 600
-
-path = './'
-
-# 初始化用于训练的环境
-trainEnv = env.AirSimDroneEnv()
+import hp
 
 # 深度预测网络.暂时不使用
 class DepthPredict():
@@ -55,7 +30,7 @@ class Actor_Net(nn.Module):
         self.fc1.weight.data.normal_(0,0.1)
         self.fc2 = nn.Linear(50,30)
         self.fc2.weight.data.normal_(0,0.1)
-        self.out = nn.Linear(30,NUM_ACTIONS)
+        self.out = nn.Linear(30,hp.NUM_ACTIONS)
         self.out.weight.data.normal_(0,0.1)
 
     def forward(self,x):
@@ -78,33 +53,33 @@ class DQN():
 
         self.learnStepCNT = 0
         self.memCnt = 0
-        self.stateMem = np.zeros((MEMORY_CAPACITY,2,IMG_H,IMG_W))
-        self.expMem = np.zeros((MEMORY_CAPACITY, 2))
+        self.stateMem = np.zeros((hp.MEMORY_CAPACITY,2,hp.IMG_H,hp.IMG_W))
+        self.expMem = np.zeros((hp.MEMORY_CAPACITY, 2))
 
-        self.optimizer0 = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
+        self.optimizer0 = torch.optim.Adam(self.eval_net.parameters(), lr=hp.LR)
         self.lossFn0 = nn.MSELoss()
         '''
         self.optimizer1 = torch.optim.Adam(self.visual_net.parameters(), lr=LR)
         self.lossFn1 = nn.L1Loss()'''
 
-        self.imgStack = torch.ones([STACK_HEIGHT,IMG_H,IMG_W],dtype=torch.float)
+        self.imgStack = torch.ones([hp.STACK_HEIGHT,hp.IMG_H,hp.IMG_W],dtype=torch.float)
 
     def getDepth(self,Img):
         return DepthPredict.forward(Img)
 
     def predict(self,state):
         state = torch.unsqueeze(torch.FloatTensor(state), 0) # get a 1D array
-        if np.random.randn() <= EPISILO:# greedy
+        if np.random.randn() <= hp.EPISILO:# greedy
             action_value = self.eval_net.forward(state)
             action = torch.max(action_value, 1)[1].data.numpy()
-            action = action[0] if ENV_A_SHAPE == 0 else action.reshape(ENV_A_SHAPE)
+            action = action[0] if hp.ENV_A_SHAPE == 0 else action.reshape(hp.ENV_A_SHAPE)
         else: # random
-            action = np.random.randint(0,NUM_ACTIONS)
-            action = action if ENV_A_SHAPE ==0 else action.reshape(ENV_A_SHAPE)
+            action = np.random.randint(0,hp.NUM_ACTIONS)
+            action = action if hp.ENV_A_SHAPE ==0 else action.reshape(hp.ENV_A_SHAPE)
         return action
 
     def storeTransation(self,state,action,reward,nextState):
-        index = self.memCnt % MEMORY_CAPACITY        
+        index = self.memCnt % hp.MEMORY_CAPACITY        
         self.expMem[index,:] = np.hstack([action,reward])
         self.stateMem[index,0,:] = state
         self.stateMem[index,1,:] = nextState
@@ -116,15 +91,16 @@ class DQN():
         self.optimizer1.zero_grad()
         loss.backward()
         self.optimizer1.step()'''
+        pass
     
     def actor_learn(self):
         # 每隔一定步数更新评估用网络的参数
-        if self.learnStepCNT % Q_NETWORK_ITERATION == 0:
+        if self.learnStepCNT % hp.Q_NETWORK_ITERATION == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learnStepCNT+=1
 
         # 从经验池取样
-        sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
+        sample_index = np.random.choice(hp.MEMORY_CAPACITY, hp.BATCH_SIZE)
         batch_ExpMem = self.expMem[sample_index, :]
         batch_stateMem = self.stateMem[sample_index, :]
         
@@ -136,7 +112,7 @@ class DQN():
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
-        q_target = batch_reward + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)
+        q_target = batch_reward + hp.GAMMA * q_next.max(1)[0].view(hp.BATCH_SIZE, 1)
         loss = self.lossFn0(q_eval, q_target)
 
         self.optimizer0.zero_grad()
@@ -146,62 +122,4 @@ class DQN():
     # 保存已训练模型的参数
     def save(self,path):
         torch.save(self.eval_net, path)
-        
-
-class Agent():
-    '''
-    用于管理DQN训练
-    TODO: 训练多个智能体,从中选优
-    '''
-    def __init__(self) -> None:
-        self.dqn = DQN()
     
-    def learn(self):
-        reward_list = []
-        plt.ion()
-        fig, ax = plt.subplots()
-        for i in range(EPISODES):
-            round_count = 0
-            max_x = -10.0
-            state = env.reset()
-            ep_reward = 0
-            while True:
-                round_count += 1
-
-                Img = trainEnv.get_obs()
-                statep = self.getDepth(Img)
-                self.visiual_learn(state)
-                
-                action = self.act(statep)
-                #print(action)
-                next_state, _ , done, info = trainEnv.step(action)
-                trainEnv.do_action(action)
-                
-                reward = trainEnv.compute_reward()
-
-                self.storeTransation(state, action, reward, next_state)
-                ep_reward += reward
-
-                if self.memCnt >= MEMORY_CAPACITY:
-                    self.actor_learn()
-                    if done:
-                        print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))
-                if done or round_count>MAX_ROUND:
-                    break
-                state = next_state
-
-            r = copy.copy(reward)
-            reward_list.append(r)
-            ax.set_xlim(0,300)
-            ax.plot(reward_list, 'g-', label='total_loss')
-            plt.pause(0.001)
-            print(max_x)
-
-    def predict(self,obs):
-        return self.dqn.predict(obs)
-
-    def save(self):
-        self.dqn.save(path+'text_model.pth')
-
-    def load(self,path):
-        self.dqn.eval_net = self.dqn.target_net = torch.load(path)
