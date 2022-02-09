@@ -12,8 +12,8 @@ MAX_ROUND = 500
 
 EPISODES = 400
 STACK_HEIGHT = 5
-IMG_H = 400
-IMG_W = 600
+IMG_H = 50
+IMG_W = 50
 
 path = './'
 ip = '127.0.0.1'

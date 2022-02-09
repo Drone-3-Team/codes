@@ -13,27 +13,27 @@ class DepthPredict():
 
 # 根据深度图决策的行动网络
 class Actor_Net(nn.Module):
-    def __init__(self):
+    def __init__(self,args):
         super(Actor_Net, self).__init__()
+        self.num_actions,self.num_states,self.env_a_shape = args
         self.covLayer1 = nn.Sequential(
-            nn.MaxPool3d(kernel_size=(1,5,5),stride=(1,5,5)),
-            nn.Conv3d(in_channels=1,out_channels=5,kernel_size=(1,5,5),stride=(3,5,5)),
+            nn.Conv3d(in_channels=1,out_channels=5,kernel_size=(2,1,1),stride=(1,1,1)),
             nn.BatchNorm3d(num_features=5),
         )
 
         self.covLayer2 = nn.Sequential(
-            nn.MaxPool3d(kernel_size=(1,2,2),stride=(1,2,2)),
-            nn.Conv3d(in_channels=5,out_channels=5,kernel_size=(1,2,2),stride=(1,2,2)),
+            nn.Conv3d(in_channels=5,out_channels=5,kernel_size=(2,1,1),stride=(1,1,1)),
             nn.BatchNorm3d(num_features=5),
         )
-        self.fc1 = nn.Linear(233, 50)
+        self.fc1 = nn.Linear(37500, 50)
         self.fc1.weight.data.normal_(0,0.1)
         self.fc2 = nn.Linear(50,30)
         self.fc2.weight.data.normal_(0,0.1)
-        self.out = nn.Linear(30,hp.NUM_ACTIONS)
+        self.out = nn.Linear(30,self.num_actions)
         self.out.weight.data.normal_(0,0.1)
 
     def forward(self,x):
+        print(x)
         x = self.covLayer1(x)
         x = self.covLayer2(x)
         x = x.view(x.size(0),-1)
@@ -46,9 +46,10 @@ class Actor_Net(nn.Module):
 
 class DQN():
 
-    def __init__(self) -> None:
+    def __init__(self,args) -> None:
         super(DQN, self).__init__()
-        self.eval_net, self.target_net = Actor_Net(), Actor_Net()
+        self.num_actions,self.num_states,self.env_a_shape = args
+        self.eval_net, self.target_net = Actor_Net(args), Actor_Net(args)
         self.visual_net = DepthPredict()
 
         self.learnStepCNT = 0
@@ -62,25 +63,24 @@ class DQN():
         self.optimizer1 = torch.optim.Adam(self.visual_net.parameters(), lr=LR)
         self.lossFn1 = nn.L1Loss()'''
 
-        self.imgStack = torch.ones([hp.STACK_HEIGHT,hp.IMG_H,hp.IMG_W],dtype=torch.float)
-
     def getDepth(self,Img):
         return DepthPredict.forward(Img)
 
     def predict(self,state):
-        state = torch.unsqueeze(torch.FloatTensor(state), 0) # get a 1D array
         if np.random.randn() <= hp.EPISILO:# greedy
             action_value = self.eval_net.forward(state)
             action = torch.max(action_value, 1)[1].data.numpy()
-            action = action[0] if hp.ENV_A_SHAPE == 0 else action.reshape(hp.ENV_A_SHAPE)
+            action = action[0] if self.env_a_shape == 0 else action.reshape(self.env_a_shape)
         else: # random
-            action = np.random.randint(0,hp.NUM_ACTIONS)
-            action = action if hp.ENV_A_SHAPE ==0 else action.reshape(hp.ENV_A_SHAPE)
+            action = np.random.randint(0,self.num_actions)
+            action = action if self.env_a_shape ==0 else action.reshape(self.env_a_shape)
         return action
 
     def storeTransation(self,state,action,reward,nextState):
         index = self.memCnt % hp.MEMORY_CAPACITY        
-        self.expMem[index,:] = np.hstack([action,reward])
+        self.expMem[index,0] = action
+        print(reward)
+        self.expMem[index,1] = reward
         self.stateMem[index,0,:] = state
         self.stateMem[index,1,:] = nextState
         self.memCnt += 1
