@@ -90,7 +90,7 @@ class AirSimDroneEnv(gym.Env):
 
     def get_obs(self):
         self.info["collision"] = self.is_collision()
-        obs = self.get_rgb_image()
+        obs = self.get_depth_image()
         return obs, self.info
 
     def compute_reward(self):

@@ -10,8 +10,9 @@ class Agent():
     用于管理DQN训练
     TODO: 训练多个智能体,从中选优
     '''
-    def __init__(self) -> None:
+    def __init__(self,trainEnv) -> None:
         self.dqn = DQN()
+        self.trainEnv = trainEnv
     
     def learn(self):
         reward_list = []
@@ -20,27 +21,27 @@ class Agent():
         for i in range(hp.EPISODES):
             round_count = 0
             max_x = -10.0
-            state = env.reset()
+            state = self.trainEnv.reset()
             ep_reward = 0
             while True:
                 round_count += 1
 
-                Img = hp.trainEnv.get_obs()
-                statep = self.getDepth(Img)
-                self.visiual_learn(state)
+                Img = self.trainEnv.get_obs()
+                statep = self.dqn.getDepth(Img)
+                self.dqn.visiual_learn(state)
                 
-                action = self.act(statep)
+                action = self.dqn.predict(statep)
                 #print(action)
-                next_state, _ , done, info = hp.trainEnv.step(action)
-                hp.trainEnv.do_action(action)
+                next_state, _ , done, info = self.trainEnv.step(action)
+                self.trainEnv.do_action(action)
                 
-                reward = hp.trainEnv.compute_reward()
+                reward = self.trainEnv.compute_reward()
 
-                self.storeTransation(state, action, reward, next_state)
+                self.dqn.storeTransation(state, action, reward, next_state)
                 ep_reward += reward
 
-                if self.memCnt >= hp.MEMORY_CAPACITY:
-                    self.actor_learn()
+                if self.dqn.memCnt >= hp.MEMORY_CAPACITY:
+                    self.dqn.actor_learn()
                     if done:
                         print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))
                 if done or round_count>hp.MAX_ROUND:
