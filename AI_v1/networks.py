@@ -1,3 +1,4 @@
+from random import sample
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -53,14 +54,15 @@ class DQN():
 
         self.learnStepCNT = 0
         self.memCnt = 0
-        self.stateMem = np.zeros((hp.MEMORY_CAPACITY,2,hp.IMG_H,hp.IMG_W))
+        self.stateMem = []
+        self.nexStateMem = []
+        for i in range(0,hp.BATCH_SIZE):
+            self.stateMem.append(torch.Tensor(size = (1,1,hp.STACK_HEIGHT,hp.IMG_W,hp.IMG_H)))
+            self.nexStateMem.append(torch.Tensor(size = (1,1,hp.STACK_HEIGHT,hp.IMG_W,hp.IMG_H)))
         self.expMem = np.zeros((hp.MEMORY_CAPACITY, 2))
 
         self.optimizer0 = torch.optim.Adam(self.eval_net.parameters(), lr=hp.LR)
         self.lossFn0 = nn.MSELoss()
-        '''
-        self.optimizer1 = torch.optim.Adam(self.visual_net.parameters(), lr=LR)
-        self.lossFn1 = nn.L1Loss()'''
 
     def getDepth(self,Img):
         return DepthPredict.forward(Img)
@@ -79,8 +81,8 @@ class DQN():
         index = self.memCnt % hp.MEMORY_CAPACITY        
         self.expMem[index,0] = action
         self.expMem[index,1] = reward
-        self.stateMem[index,0,:] = state
-        self.stateMem[index,1,:] = nextState
+        self.stateMem[index] = state
+        self.nexStateMem[index] = nextState
         self.memCnt += 1
 
     def visiual_learn(self,envState):
@@ -93,25 +95,27 @@ class DQN():
     
     def actor_learn(self):
         # 每隔一定步数更新评估用网络的参数
+        self.learnStepCNT+=1
         if self.learnStepCNT % hp.Q_NETWORK_ITERATION == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
-        self.learnStepCNT+=1
+            print('.')
+        else:
+            return
 
-        # 从经验池取样
-        sample_index = np.random.choice(hp.MEMORY_CAPACITY, hp.BATCH_SIZE)
-        batch_ExpMem = self.expMem[sample_index, :]
-        batch_stateMem = self.stateMem[sample_index, :]
-        
-        batch_state = torch.FloatTensor(batch_stateMem[:, 0])
+        #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a)))
+        sample_index = np.random.choice(hp.MEMORY_CAPACITY, hp.BATCH_SIZE).astype(int).tolist()
+        batch_ExpMem = self.expMem[sample_index]
+
         batch_action = torch.LongTensor(batch_ExpMem[:, 0].astype(int))
         batch_reward = torch.FloatTensor(batch_ExpMem[:, 1])
-        batch_next_state = torch.FloatTensor(batch_stateMem[:,1:])
-
-        #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
-        # 这里有问题：在评估时需要输入一系列imgstack的tensor，你这里却输入的是一个图像
-        # 应该用getCNNinput 处理一下batch_state和batch_next_state
-        q_eval = self.eval_net(batch_state).gather(1, batch_action)
-        q_next = self.target_net(batch_next_state).detach()
+        eval_actions = torch.Tensor(size = (hp.BATCH_SIZE,self.num_actions))
+        q_next = torch.Tensor(size = (hp.BATCH_SIZE,self.num_actions))
+        for i in range(0,hp.BATCH_SIZE):
+            eval_actions[sample_index[i]] = self.eval_net(self.stateMem[sample_index[i]])
+            q_next[sample_index[i]] = self.target_net(self.nexStateMem[sample_index[i]])
+        
+        q_eval = eval_actions[:,batch_action]
+        
         q_target = batch_reward + hp.GAMMA * q_next.max(1)[0].view(hp.BATCH_SIZE, 1)
         loss = self.lossFn0(q_eval, q_target)
 

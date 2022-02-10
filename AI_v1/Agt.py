@@ -4,25 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from networks import DQN
 import hp
-
-def img2tensor(depthArray):
-    return torch.tensor(depthArray,dtype=torch.double)
-
-def stack_image(stack,newImg):
-    newImg = torch.unsqueeze(newImg, dim = 0)    # 添加一个维度以使用cat
-    stacked = torch.cat([stack[1:],newImg],dim = 0)   #拼接，去除stack[1,:,:]之前的元素
-    return stacked
-
-def addDimForCNN(imgStack):
-    tensor5D = torch.zeros(1,1,hp.STACK_HEIGHT,hp.IMG_H,hp.IMG_W)
-    tensor5D[0,0] = imgStack
-    return tensor5D
-
-def getCNNInput(imgStack,newImg):
-    newImg = img2tensor(newImg)
-    newStack = stack_image(imgStack,newImg)
-    return newStack,addDimForCNN(newStack)
-
+from hp import getCNNInput
 
 class Agent():
     '''
@@ -44,17 +26,13 @@ class Agent():
             ep_reward = 0
             while True:
                 round_count += 1
-
-                self.getObs()
-                #self.dqn.visiual_learn(state)
+                temp = self.imgStack
+                self.imgStack,self.CNNinput = getCNNInput(self.imgStack,state)
                 action = self.dqn.predict(self.CNNinput)
-                #print(action)
-                next_state, _ , done, info = self.trainEnv.step(action)
-                self.trainEnv.do_action(action)
-                
-                reward,_ = self.trainEnv.compute_reward()
 
-                self.dqn.storeTransation(state, action, reward, next_state)
+                next_state, reward , done, _ = self.trainEnv.step(action)
+                _,next_input = getCNNInput(temp,next_state)
+                self.dqn.storeTransation(self.CNNinput, action, reward, next_input)
                 ep_reward += reward
 
                 if self.dqn.memCnt >= hp.MEMORY_CAPACITY:
@@ -65,17 +43,11 @@ class Agent():
                     break
                 state = next_state
 
-            r = copy.copy(reward)
-            reward_list.append(r)
+            reward_list.append(reward)
             ax.set_xlim(0,300)
             ax.plot(reward_list, 'g-', label='total_loss')
             plt.pause(0.001)
-
-    def getObs(self):
-        Img ,_ = self.trainEnv.get_obs()
-        #statep = self.dqn.getDepth(Img)
-        self.imgStack,self.CNNinput = getCNNInput(self.imgStack,Img)
-
+        
     def predict(self):
         return self.dqn.predict(self.CNNinput)
 
