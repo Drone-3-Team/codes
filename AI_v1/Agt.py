@@ -2,6 +2,7 @@ import copy
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import airsim
 from networks import DQN
 import hp
 from hp import getCNNInput
@@ -44,7 +45,7 @@ class Agent():
                 state = next_state
 
             reward_list.append(reward)
-            ax.set_xlim(0,300)
+            ax.set_xlim(0,i)
             ax.plot(reward_list, 'g-', label='total_loss')
             plt.pause(0.001)
         

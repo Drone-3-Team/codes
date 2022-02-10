@@ -15,8 +15,8 @@ BATCH_SIZE = 256
 LR = 0.05
 GAMMA = 0.9
 EPISILO = 0.9
-MEMORY_CAPACITY = 10
-Q_NETWORK_ITERATION = 5
+MEMORY_CAPACITY = 256
+Q_NETWORK_ITERATION = 100
 MAX_ROUND = 500
 NUM_ACTIONS = env.action_space.n
 NUM_STATES = env.observation_space.shape[0]
@@ -163,7 +163,6 @@ class DQN():
 
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
-        print(self.eval_net(batch_state).size(),batch_action.size())
         q_next = self.target_net(batch_next_state).detach()
         q_target = batch_reward + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)
         loss = self.lossFn0(q_eval, q_target)
@@ -196,7 +195,7 @@ if __name__ == '__main__':
             #print(statep.detach().numpy()-state,statep.detach().numpy(),state)
             
             action = dqn.act(statep)
-            #print(action)
+            print(action)
             next_state, _ , done, info = env.step(action)
             x, v = next_state
 
@@ -209,7 +208,6 @@ if __name__ == '__main__':
             ep_reward += reward
 
             if dqn.memCnt >= MEMORY_CAPACITY:
-                print('.')
                 dqn.actor_learn()
                 if done:
                     print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))

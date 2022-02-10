@@ -18,15 +18,14 @@ class Actor_Net(nn.Module):
         super(Actor_Net, self).__init__()
         self.num_actions,self.num_states,self.env_a_shape = args
         self.covLayer1 = nn.Sequential(
-            nn.Conv3d(in_channels=1,out_channels=5,kernel_size=(2,1,1),stride=(1,1,1)),
-            nn.BatchNorm3d(num_features=5),
+            nn.MaxPool3d(kernel_size=(1,1,1),stride=(5,1,1)),
+            nn.Conv3d(in_channels=1,out_channels=64,kernel_size=(1,1,1),stride=(1,1,1)),
+            nn.Conv3d(in_channels=64,out_channels=64,kernel_size=(1,1,1),stride=(1,1,1)),
+            nn.MaxPool3d(kernel_size=(1,2,2),stride=(1,2,2)),
+            nn.Conv3d(in_channels=64,out_channels=1,kernel_size=(1,1,1),stride=(1,2,2)),
+            nn.BatchNorm3d(num_features=1),
         )
-
-        self.covLayer2 = nn.Sequential(
-            nn.Conv3d(in_channels=5,out_channels=5,kernel_size=(2,1,1),stride=(1,1,1)),
-            nn.BatchNorm3d(num_features=5),
-        )
-        self.fc1 = nn.Linear(37500, 50)
+        self.fc1 = nn.Linear(169, 50)
         self.fc1.weight.data.normal_(0,0.1)
         self.fc2 = nn.Linear(50,30)
         self.fc2.weight.data.normal_(0,0.1)
@@ -35,7 +34,6 @@ class Actor_Net(nn.Module):
 
     def forward(self,x):
         x = self.covLayer1(x)
-        x = self.covLayer2(x)
         x = x.view(x.size(0),-1)
         x = self.fc1(x)
         x = F.relu(x)
@@ -98,10 +96,7 @@ class DQN():
         self.learnStepCNT+=1
         if self.learnStepCNT % hp.Q_NETWORK_ITERATION == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
-            print('.')
-        else:
-            return
-
+            
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a)))
         sample_index = np.random.choice(hp.MEMORY_CAPACITY, hp.BATCH_SIZE).astype(int).tolist()
         batch_ExpMem = self.expMem[sample_index]

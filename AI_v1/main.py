@@ -16,8 +16,6 @@ ENV_A_SHAPE = 0 if isinstance(trainEnv.action_space.sample(), int) else trainEnv
 args = [NUM_ACTIONS,NUM_STATES,ENV_A_SHAPE]
 
 Img,collision = trainEnv.get_obs()
-#plt.imshow(Img)
-#plt.show()
 
 agt = Agent(trainEnv,args)
 

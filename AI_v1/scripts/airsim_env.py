@@ -155,7 +155,7 @@ class AirSimDroneEnv(gym.Env):
             return np.zeros((self.image_shape))
 
     def get_depth_image(self, thresh = 2.0):
-        depth_image_request = airsim.ImageRequest(1, airsim.ImageType.DepthPerspective, True, False)
+        depth_image_request = airsim.ImageRequest('0', airsim.ImageType.DepthPerspective, True, False)
         responses = self.drone.simGetImages([depth_image_request])
         depth_image = np.array(responses[0].image_data_float, dtype=np.float32)
         depth_image = np.reshape(depth_image, (responses[0].height, responses[0].width))
