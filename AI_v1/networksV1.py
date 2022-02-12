@@ -46,7 +46,7 @@ class DQN():
 
     def __init__(self,args) -> None:
         super(DQN, self).__init__()
-        self.num_actions,self.num_states,self.env_a_shape = args
+        self.num_actions,self.num_states,self.env_a_shape,device = args
         self.eval_net, self.target_net = Actor_Net(args), Actor_Net(args)
         self.visual_net = DepthPredict()
 

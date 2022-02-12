@@ -3,7 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import airsim
-from networks import DQN
+from networksV2CUDA import DuelingDQN
 import hp
 from hp import getCNNInput
 
@@ -13,7 +13,7 @@ class Agent():
     TODO: 训练多个智能体,从中选优
     '''
     def __init__(self,trainEnv,args) -> None:
-        self.dqn = DQN(args)
+        self.dqn = DuelingDQN(args)
         self.trainEnv = trainEnv
         self.imgStack = torch.zeros([hp.STACK_HEIGHT,hp.IMG_H,hp.IMG_W],dtype=torch.float)
         self.CNNinput = 0
