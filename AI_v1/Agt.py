@@ -3,7 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import airsim
-from networksV2CUDA import DuelingDQN
+from networksV2 import DuelingDQN
 import hp
 from hp import getCNNInput
 

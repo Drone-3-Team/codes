@@ -17,7 +17,7 @@ class Actor_Net(nn.Module):
     def __init__(self,args):
         super(Actor_Net, self).__init__()
 
-        self.num_actions,self.num_states,self.env_a_shape = args
+        self.num_actions,self.num_states,self.env_a_shape,_ = args
 
         self.cov = nn.Sequential(
             nn.MaxPool3d(kernel_size=(1,1,1),stride=(5,2,2)),
