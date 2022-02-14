@@ -62,7 +62,7 @@ class AirSimDroneEnv(gym.Env):
         self.target_dist_prev = np.linalg.norm(np.array([y_pos, z_pos]) - self.target_pos)
 
     def do_action(self, select_action):
-        speed = 0.4
+        speed = 0.3
         if select_action == 0:
             vy, vz = (-speed, -speed)
         elif select_action == 1:
@@ -124,7 +124,7 @@ class AirSimDroneEnv(gym.Env):
 
         # Check if agent passed through the hole
         elif agent_traveled_x > 3.7:
-            reward += 10
+            reward += 50
             done = 1
 
         # Check if the hole disappeared from camera frame

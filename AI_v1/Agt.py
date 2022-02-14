@@ -18,20 +18,22 @@ class Agent():
             self.inputQue.append(np.zeros(shape=(hp.IMG_H,hp.IMG_W),dtype=np.float32))
 
         #plt.ion()
-        self.fig, self.ax = plt.subplots()
+        #self.fig, self.ax = plt.subplots()
         print('using device:', self.device)
     def learn(self):
         reward_list = []
         for i in range(hp.EPISODES):
             round_count = 0
             state = self.trainEnv.reset()
-
+            tot_reward = 0
             while True:
+                
                 round_count += 1
                 self.pushQueue(hp.RGB2Gray(state))
                 action = self.dqn.predict(self.getInput())
 
                 next_state, reward , done = self.trainEnv.step(action)
+                tot_reward += reward
 
                 self.replayMem.push([np.array(self.inputQue), action, reward])
                 self.memCnt += 1
@@ -39,12 +41,13 @@ class Agent():
                 if self.memCnt >= hp.MEMORY_CAPACITY:
                     self.dqn.actor_learn(self.replayMem.replay())
                     if done:
-                        print("episode: {} , the episode reward is {}".format(i, round(reward, 3)))
+                        print("episode: {} , the episode reward is {}".format(i, tot_reward))
                 if done or round_count>hp.MAX_ROUND:
                     break
                 state = next_state
 
-            reward_list.append(reward)
+            reward_list.append(tot_reward)
+            #self.graphing(reward_list,i)
             
 
     def pushQueue(self,newImg):
@@ -55,8 +58,8 @@ class Agent():
         return torch.tensor(data = np.array(self.inputQue,dtype=float)
                 ,device=self.device,dtype=torch.float).unsqueeze(dim = 0).unsqueeze(dim = 1)
 
-    def graphing(self,reward_list):
-        self.ax.set_xlim(0,300)
+    def graphing(self,reward_list,i):
+        self.ax.set_xlim(0,i)
         self.ax.plot(reward_list, 'g-', label='total_loss')
         plt.pause(0.001)
 

@@ -20,4 +20,4 @@ args = [NUM_ACTIONS,NUM_STATES,ENV_A_SHAPE,device]
 agt = Agent(trainEnv,args)
 
 agt.learn()
-agt.save(hp.path)
+agt.save()

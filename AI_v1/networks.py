@@ -19,33 +19,40 @@ class Actor_Net(nn.Module):
         super(Actor_Net, self).__init__()
 
         self.num_actions,self.num_states,self.env_a_shape,_ = args
+        self.convVisualize = False
+        plt.ion()
 
         self.cov = nn.Sequential(
-            nn.Conv3d(1,5,kernel_size=(1,1,1),stride=(1,1,1)),
+            nn.Conv3d(1,5,kernel_size=(2,1,1),stride=(1,2,2)),
             nn.BatchNorm3d(num_features=5),
-            nn.Conv3d(5,1,kernel_size=(1,1,1),stride=(1,1,1)),
+            nn.Conv3d(5,1,kernel_size=(2,1,1),stride=(1,2,2)),
             nn.BatchNorm3d(num_features=1)
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(2500, 50),
+            nn.Linear(169, 128),
             nn.ReLU(),
         )
 
         self.advantage = nn.Sequential(
-            nn.Linear(50, 50),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128,50),
             nn.ReLU(),
             nn.Linear(50,self.num_actions),
         )
 
         self.value = nn.Sequential(
-            nn.Linear(50, 50),
+            nn.Linear(128, 50),
             nn.ReLU(),
             nn.Linear(50,1),
         )
 
     def forward(self,x):
         x = self.cov(x)
+        if self.convVisualize:
+            plt.imshow((x.detach().cpu().numpy())[0,0,0])
+            plt.pause(0.5)
         x = x.view(x.size(0),-1)
         x = self.fc(x)
         a = self.advantage(x)
