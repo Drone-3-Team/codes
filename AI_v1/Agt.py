@@ -1,56 +1,62 @@
-import copy
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import airsim
-from networksV2 import DuelingDQN
+from networks import DuelingDQN
 import hp
-from hp import getCNNInput
 
 class Agent():
-    '''
-    用于管理DQN训练
-    TODO: 训练多个智能体,从中选优
-    '''
+
     def __init__(self,trainEnv,args) -> None:
         self.dqn = DuelingDQN(args)
         self.trainEnv = trainEnv
-        self.imgStack = torch.zeros([hp.STACK_HEIGHT,hp.IMG_H,hp.IMG_W],dtype=torch.float)
-        self.CNNinput = 0
+        self.device = args[3]
+        self.replayMem = hp.ExpReplay(self.device)
+        self.memCnt = 0
+        self.inputQue = []
+        for i in range(0,hp.IN_DEPTH):
+            self.inputQue.append(np.zeros(shape=(hp.IMG_H,hp.IMG_W),dtype=float))
+
+        plt.ion()
+        self.fig, self.ax = plt.subplots()
+        print('using device:', self.device)
     def learn(self):
         reward_list = []
-        plt.ion()
-        fig, ax = plt.subplots()
         for i in range(hp.EPISODES):
             round_count = 0
             state = self.trainEnv.reset()
-            ep_reward = 0
+
             while True:
                 round_count += 1
-                temp = self.imgStack
-                self.imgStack,self.CNNinput = getCNNInput(self.imgStack,state)
-                action = self.dqn.predict(self.CNNinput)
+                self.pushQueue(hp.RGB2Gray(state))
+                action = self.dqn.predict(self.getInput())
 
                 next_state, reward , done, _ = self.trainEnv.step(action)
-                _,next_input = getCNNInput(temp,next_state)
-                self.dqn.storeTransation(self.CNNinput, action, reward, next_input)
-                ep_reward += reward
+                self.replayMem.push(np.array(self.inputQue), action, reward)
 
-                if self.dqn.memCnt >= hp.MEMORY_CAPACITY:
-                    self.dqn.actor_learn()
+                if self.memCnt >= hp.MEMORY_CAPACITY:
+                    self.dqn.actor_learn(self.replayMem.replay())
                     if done:
-                        print("episode: {} , the episode reward is {}".format(i, round(ep_reward, 3)))
+                        print("episode: {} , the episode reward is {}".format(i, round(reward, 3)))
                 if done or round_count>hp.MAX_ROUND:
                     break
                 state = next_state
 
             reward_list.append(reward)
-            ax.set_xlim(0,i)
-            ax.plot(reward_list, 'g-', label='total_loss')
-            plt.pause(0.001)
-        
-    def predict(self):
-        return self.dqn.predict(self.CNNinput)
+            
+
+    def pushQueue(self,newImg):
+        self.inputQue = self.inputQue[1:]
+        self.inputQue.append(newImg)
+
+    def getInput(self):
+        return torch.tensor(data = np.array(self.inputQue,dtype=float)
+                ,device=self.device,dtype=torch.float).unsqueeze(dim = 3)
+
+    def graphing(self,reward_list):
+        self.ax.set_xlim(0,300)
+        self.ax.plot(reward_list, 'g-', label='total_loss')
+        plt.pause(0.001)
 
     def save(self):
         self.dqn.save(hp.path+'text_model.pth')

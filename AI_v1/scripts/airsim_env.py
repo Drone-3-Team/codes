@@ -90,7 +90,7 @@ class AirSimDroneEnv(gym.Env):
 
     def get_obs(self):
         self.info["collision"] = self.is_collision()
-        obs = self.get_depth_image()
+        obs = self.get_rgb_image()
         return obs, self.info
 
     def compute_reward(self):
@@ -143,7 +143,7 @@ class AirSimDroneEnv(gym.Env):
         return True if current_collision_time != self.collision_time else False
     
     def get_rgb_image(self):
-        rgb_image_request = airsim.ImageRequest(0, airsim.ImageType.Scene, False, False)
+        rgb_image_request = airsim.ImageRequest('0', airsim.ImageType.Scene, False, False)
         responses = self.drone.simGetImages([rgb_image_request])
         img1d = np.fromstring(responses[0].image_data_uint8, dtype=np.uint8)
         img2d = np.reshape(img1d, (responses[0].height, responses[0].width, 3)) 

@@ -163,6 +163,7 @@ class DQN():
 
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a))
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
+        print(batch_state.size())
         q_next = self.target_net(batch_next_state).detach()
         q_target = batch_reward + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)
         loss = self.lossFn0(q_eval, q_target)
@@ -195,7 +196,7 @@ if __name__ == '__main__':
             #print(statep.detach().numpy()-state,statep.detach().numpy(),state)
             
             action = dqn.act(statep)
-            print(action)
+            #print(action)
             next_state, _ , done, info = env.step(action)
             x, v = next_state
 
