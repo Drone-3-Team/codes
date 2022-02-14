@@ -1,4 +1,3 @@
-from random import sample
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,15 +22,18 @@ class Actor_Net(nn.Module):
         plt.ion()
 
         self.cov = nn.Sequential(
-            nn.Conv3d(1,5,kernel_size=(2,1,1),stride=(1,2,2)),
-            nn.BatchNorm3d(num_features=5),
-            nn.Conv3d(5,1,kernel_size=(2,1,1),stride=(1,2,2)),
-            nn.BatchNorm3d(num_features=1)
+            nn.Conv3d(1,10,kernel_size=(1,3,3),stride=(1,1,1)),
+            nn.BatchNorm3d(num_features=10),
+            nn.Conv3d(10,10,kernel_size=(1,3,3),stride=(1,1,1)),
+            nn.BatchNorm3d(num_features=10),
+            nn.Conv3d(10,1,kernel_size=(1,3,3),stride=(1,1,1))
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(169, 128),
+            nn.Linear(1936, 512),
             nn.ReLU(),
+            nn.Linear(512, 128),
+            nn.ReLU()
         )
 
         self.advantage = nn.Sequential(

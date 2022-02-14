@@ -26,6 +26,8 @@ class Agent():
             round_count = 0
             state = self.trainEnv.reset()
             tot_reward = 0
+            for j in range(0,hp.IN_DEPTH):
+                self.inputQue[j] = np.zeros(shape=(hp.IMG_H,hp.IMG_W),dtype=np.float32)
             while True:
                 
                 round_count += 1

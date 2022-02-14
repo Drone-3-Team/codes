@@ -124,7 +124,7 @@ class AirSimDroneEnv(gym.Env):
 
         # Check if agent passed through the hole
         elif agent_traveled_x > 3.7:
-            reward += 50
+            reward += 10
             done = 1
 
         # Check if the hole disappeared from camera frame
