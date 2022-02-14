@@ -21,7 +21,7 @@ class Actor_Net(nn.Module):
         self.convVisualize = False
         plt.ion()
 
-        self.cov = nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv3d(1,10,kernel_size=(1,3,3),stride=(1,1,1)),
             nn.BatchNorm3d(num_features=10),
             nn.Conv3d(10,10,kernel_size=(1,3,3),stride=(1,1,1)),
@@ -51,7 +51,7 @@ class Actor_Net(nn.Module):
         )
 
     def forward(self,x):
-        x = self.cov(x)
+        x = self.conv(x)
         if self.convVisualize:
             plt.imshow((x.detach().cpu().numpy())[0,0,0])
             plt.pause(0.5)
@@ -59,7 +59,7 @@ class Actor_Net(nn.Module):
         x = self.fc(x)
         a = self.advantage(x)
         v = self.value(x)
-        q = v.expand_as(a)+a-a.mean()
+        q = v.expand_as(a) + a-a.mean()
         return q
 
 class DuelingDQN():
@@ -79,7 +79,8 @@ class DuelingDQN():
         return DepthPredict.forward(Img)
 
     def predict(self,input):
-        if np.random.randn() <= hp.EPISILO:# greedy
+        eps = 1-(self.EpisodeCnt+1/hp.EPISODES)+0.01
+        if np.random.rand() <= eps:# greedy
             action_value = self.eval_net.forward(input)
             action = torch.max(action_value.cpu(), 1)[1].data.numpy()
             action = action[0] if self.env_a_shape == 0 else action.reshape(self.env_a_shape)

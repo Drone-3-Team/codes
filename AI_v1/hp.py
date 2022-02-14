@@ -13,7 +13,7 @@ MEMORY_CAPACITY = 512
 Q_NETWORK_ITERATION = 128
 MAX_ROUND = 1000
 
-EPISODES = 50000
+EPISODES = 10000
 IN_DEPTH = 1
 IMG_H = 50
 IMG_W = 50
@@ -35,9 +35,6 @@ class ExpReplay:
         self.stateMem = np.zeros(shape=(MEMORY_CAPACITY+1,IN_DEPTH,IMG_H,IMG_W),dtype=float)
         self.action = np.zeros(shape=(MEMORY_CAPACITY+1),dtype=int)
         self.reward = np.zeros(shape=(MEMORY_CAPACITY+1),dtype=int)
-        self.inputQue = []
-        for i in range(0,IN_DEPTH):
-            self.inputQue.append(np.zeros(shape=(MEMORY_CAPACITY+1,IMG_H,IMG_W),dtype=float))
         self.memCnt = 0
         self.device = device
         
