@@ -5,18 +5,18 @@ import scripts.airsim_env as env
 import torch
 import numpy as np
 # 超参数们
-BATCH_SIZE = 3
+BATCH_SIZE = 512
 LR = 0.1
 GAMMA = 0.8
 EPISILO = 0.8
-MEMORY_CAPACITY = 5
-Q_NETWORK_ITERATION = 128
+MEMORY_CAPACITY = 1024
+Q_NETWORK_ITERATION = 2048
 MAX_ROUND = 1000
 
 EPISODES = 1000
-IN_DEPTH = 3
-IMG_H = 2
-IMG_W = 2
+IN_DEPTH = 1
+IMG_H = 50
+IMG_W = 50
 
 path = './'
 ip = '127.0.0.1'
@@ -37,14 +37,13 @@ class ExpReplay:
         self.reward = np.zeros(shape=(MEMORY_CAPACITY+1),dtype=int)
         self.inputQue = []
         for i in range(0,IN_DEPTH):
-            self.inputQue.append(np.zeros(shape=(MEMORY_CAPACITY+1,IN_DEPTH,IMG_H,IMG_W),dtype=float))
+            self.inputQue.append(np.zeros(shape=(MEMORY_CAPACITY+1,IMG_H,IMG_W),dtype=float))
         self.memCnt = 0
         self.device = device
         
     def push(self,states):
         index = self.memCnt % (MEMORY_CAPACITY+1)
         self.stateMem[index], self.action[index], self.reward[index] = states
-        self.pushQueue(states[0])
         self.memCnt += 1
         
     def replay(self):
@@ -53,13 +52,12 @@ class ExpReplay:
         '''
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE)
 
-        batchState = self.stateMem[sample_index,:]
-        batchNexState = self.stateMem[sample_index+1,:]
-
-        batchState = torch.tensor(data = batchState
-                    ,device=self.device).unsqueeze(dim = 4)
-        batchNexState = torch.tensor(data = batchNexState
-                    ,device=self.device).unsqueeze(dim = 4)
-        batchReawrd = torch.tensor(self.action[sample_index], device=self.device, dtype=torch.long)
-        batchAction = torch.tensor(self.reward[sample_index], device=self.device)
+        batchState = torch.tensor(data = self.stateMem[sample_index,:]
+                    ,device=self.device,dtype=torch.float).unsqueeze(dim = 1)
+        batchNexState = torch.tensor(data = self.stateMem[sample_index+1,:]
+                    ,device=self.device,dtype=torch.float).unsqueeze(dim = 1)
+        batchReawrd = torch.tensor(self.reward[sample_index]
+                    ,device=self.device, dtype=torch.long)
+        batchAction = torch.tensor(np.array([self.action[sample_index]]).astype(int)
+                    ,device=self.device,dtype=torch.long)
         return batchState,batchNexState,batchReawrd,batchAction

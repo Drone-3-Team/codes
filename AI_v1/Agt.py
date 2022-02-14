@@ -15,9 +15,9 @@ class Agent():
         self.memCnt = 0
         self.inputQue = []
         for i in range(0,hp.IN_DEPTH):
-            self.inputQue.append(np.zeros(shape=(hp.IMG_H,hp.IMG_W),dtype=float))
+            self.inputQue.append(np.zeros(shape=(hp.IMG_H,hp.IMG_W),dtype=np.float32))
 
-        plt.ion()
+        #plt.ion()
         self.fig, self.ax = plt.subplots()
         print('using device:', self.device)
     def learn(self):
@@ -31,8 +31,10 @@ class Agent():
                 self.pushQueue(hp.RGB2Gray(state))
                 action = self.dqn.predict(self.getInput())
 
-                next_state, reward , done, _ = self.trainEnv.step(action)
-                self.replayMem.push(np.array(self.inputQue), action, reward)
+                next_state, reward , done = self.trainEnv.step(action)
+
+                self.replayMem.push([np.array(self.inputQue), action, reward])
+                self.memCnt += 1
 
                 if self.memCnt >= hp.MEMORY_CAPACITY:
                     self.dqn.actor_learn(self.replayMem.replay())
@@ -51,7 +53,7 @@ class Agent():
 
     def getInput(self):
         return torch.tensor(data = np.array(self.inputQue,dtype=float)
-                ,device=self.device,dtype=torch.float).unsqueeze(dim = 3)
+                ,device=self.device,dtype=torch.float).unsqueeze(dim = 0).unsqueeze(dim = 1)
 
     def graphing(self,reward_list):
         self.ax.set_xlim(0,300)

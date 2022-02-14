@@ -58,13 +58,13 @@ class DuelingDQN():
     def __init__(self,args) -> None:
         super(DuelingDQN, self).__init__()
         self.num_actions,self.num_states,self.env_a_shape,self.device = args
-        self.eval_net, self.target_net = Actor_Net(args), Actor_Net(args)
+        self.eval_net, self.target_net = Actor_Net(args).to(self.device), Actor_Net(args).to(self.device)
         self.visual_net = DepthPredict()
 
         self.EpisodeCnt = 0
 
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=hp.LR)
-        self.lossFn = nn.MSELoss()
+        self.lossFn = nn.MSELoss().to(self.device)
 
     def getDepth(self,Img):
         return DepthPredict.forward(Img)
@@ -72,7 +72,7 @@ class DuelingDQN():
     def predict(self,input):
         if np.random.randn() <= hp.EPISILO:# greedy
             action_value = self.eval_net.forward(input)
-            action = torch.max(action_value, 1)[1].data.numpy()
+            action = torch.max(action_value.cpu(), 1)[1].data.numpy()
             action = action[0] if self.env_a_shape == 0 else action.reshape(self.env_a_shape)
         else: # random
             action = np.random.randint(0,self.num_actions)
@@ -90,12 +90,12 @@ class DuelingDQN():
             
         #Q*(s,a) = Q(s,a) + alpha*(r + gamma*max(Q(s',a')) - Q(s,a)))
         batch_state,batch_next_state,batch_reward,batch_action = replay
+
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
-        
         q_target = batch_reward + hp.GAMMA * q_next.max(1)[0].view(hp.BATCH_SIZE, 1)
-        loss = self.lossFn(q_eval, q_target)
 
+        loss = self.lossFn(q_eval, q_target)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

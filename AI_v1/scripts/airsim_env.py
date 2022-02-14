@@ -20,13 +20,13 @@ class AirSimDroneEnv(gym.Env):
 
     def step(self, action):
         self.do_action(action)
-        obs, info = self.get_obs()
+        obs = self.get_obs()
         reward, done = self.compute_reward()
-        return obs, reward, done, info
+        return obs, reward, done
 
     def reset(self):
         self.setup_flight()
-        obs, _ = self.get_obs()
+        obs = self.get_obs()
         return obs
 
     def render(self):
@@ -91,7 +91,7 @@ class AirSimDroneEnv(gym.Env):
     def get_obs(self):
         self.info["collision"] = self.is_collision()
         obs = self.get_rgb_image()
-        return obs, self.info
+        return obs
 
     def compute_reward(self):
         reward = 0
