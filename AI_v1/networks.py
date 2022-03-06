@@ -22,17 +22,17 @@ class Actor_Net(nn.Module):
         plt.ion()
 
         self.conv = nn.Sequential(
-            nn.Conv3d(1,10,kernel_size=(1,3,3),stride=(1,1,1)),
-            nn.BatchNorm3d(num_features=10),
-            nn.Conv3d(10,10,kernel_size=(1,3,3),stride=(1,1,1)),
-            nn.BatchNorm3d(num_features=10),
-            nn.Conv3d(10,1,kernel_size=(1,3,3),stride=(1,1,1))
+            nn.Conv3d(1,5,kernel_size=(1,3,3),stride=(1,1,1)),
+            nn.BatchNorm3d(num_features=5),
+            nn.Conv3d(5,5,kernel_size=(1,3,3),stride=(1,1,1)),
+            nn.BatchNorm3d(num_features=5),
+            nn.Conv3d(5,1,kernel_size=(1,3,3),stride=(1,1,1))
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(1936, 512),
+            nn.Linear(1936, 128),
             nn.ReLU(),
-            nn.Linear(512, 128),
+            nn.Linear(128, 128),
             nn.ReLU()
         )
 
@@ -79,7 +79,9 @@ class DuelingDQN():
         return DepthPredict.forward(Img)
 
     def predict(self,input):
-        eps = 1-(self.EpisodeCnt+1/hp.EPISODES)+0.01
+        eps = (self.EpisodeCnt/hp.EPISODES)+0.3
+        #print(eps)
+        #eps = 1
         if np.random.rand() <= eps:# greedy
             action_value = self.eval_net.forward(input)
             action = torch.max(action_value.cpu(), 1)[1].data.numpy()
@@ -94,7 +96,6 @@ class DuelingDQN():
     
     def actor_learn(self,replay):
         # 每隔一定步数更新评估用网络的参数
-        self.EpisodeCnt+=1
         if self.EpisodeCnt % hp.Q_NETWORK_ITERATION == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
             

@@ -1,5 +1,6 @@
 import random
 from turtle import shape
+from matplotlib import pyplot as plt
 import yaml
 import scripts.airsim_env as env
 import torch
@@ -9,11 +10,11 @@ BATCH_SIZE = 128
 LR = 0.1
 GAMMA = 0.9
 EPISILO = 0.65
-MEMORY_CAPACITY = 512
+MEMORY_CAPACITY = 256
 Q_NETWORK_ITERATION = 128
 MAX_ROUND = 1000
 
-EPISODES = 50000
+EPISODES = 1000
 IN_DEPTH = 1
 IMG_H = 50
 IMG_W = 50
@@ -57,4 +58,13 @@ class ExpReplay:
                     ,device=self.device, dtype=torch.long)
         batchAction = torch.tensor(np.array([self.action[sample_index]]).astype(int)
                     ,device=self.device,dtype=torch.long)
+
+        '''
+        plt.ion()
+        plt.subplot(2,1,1)
+        plt.imshow(self.stateMem[sample_index[1]][0])
+        plt.subplot(2,1,2)
+        plt.imshow(self.stateMem[sample_index[1]+1][0])
+        plt.pause(0.1)'''
+
         return batchState,batchNexState,batchReawrd,batchAction

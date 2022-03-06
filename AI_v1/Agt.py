@@ -39,6 +39,7 @@ class Agent():
 
                 self.replayMem.push([np.array(self.inputQue), action, reward])
                 self.memCnt += 1
+                
 
                 if self.memCnt >= hp.MEMORY_CAPACITY:
                     self.dqn.actor_learn(self.replayMem.replay())
@@ -47,7 +48,8 @@ class Agent():
                 if done or round_count>hp.MAX_ROUND:
                     break
                 state = next_state
-
+                
+            self.dqn.EpisodeCnt+=1
             reward_list.append(tot_reward)
             #self.graphing(reward_list,i)
             
