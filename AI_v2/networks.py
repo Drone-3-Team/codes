@@ -91,8 +91,6 @@ class DuelingDQN():
     def predict(self,input):
         # 使得随机程度随着训练的进行下降
         eps = (self.EpisodeCnt/hp.EPISODES)+0.3
-        #print(eps)
-        #eps = 1
         Img,pos = input
         if np.random.rand() <= eps:# 选择贪心
             action_value = self.eval_net.forward(Img,pos)

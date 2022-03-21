@@ -1,3 +1,4 @@
+from sympy import false
 from . import airsim
 import gym
 import numpy as np
@@ -5,12 +6,14 @@ import hp
 
 
 class AirSimDroneEnv(gym.Env):
-    def __init__(self, ip_address, image_shape, env_config):
+    def __init__(self, ip_address, image_shape, train = false):
         self.image_shape = image_shape
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=self.image_shape, dtype=np.uint8)#图像通道
         self.action_space = gym.spaces.Discrete(6)
+
+        self.train = train
 
         self.collision_time = 0
         self.random_start = True
@@ -75,6 +78,10 @@ class AirSimDroneEnv(gym.Env):
         # 执行
         self.drone.moveByVelocityBodyFrameAsync(dv, 0, self.spd, duration=1).join()
         self.drone.rotateByYawRateAsync(self.yawspd, duration = 1).join()
+
+        if(self.train):#这是为了保证在迭代网络权值的时候无人机不再滑行。演示时，self.train = False
+            self.drone.moveByVelocityBodyFrameAsync(dv, 0, 0, duration=0.1).join()
+            self.drone.rotateByYawRateAsync(0, duration = 0.1).join()
 
     # 获取观测信息。观测信息包含：图像、与目标的相对位置
     def get_obs(self):

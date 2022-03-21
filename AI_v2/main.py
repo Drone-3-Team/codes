@@ -10,7 +10,7 @@ device = "cpu"  #debug
 
 with open('AI_v1\scripts\config.yml', 'r') as f:
     env_config = yaml.safe_load(f)
-trainEnv = env.AirSimDroneEnv(hp.ip,(hp.IMG_H,hp.IMG_W,3),env_config['TrainEnv'])
+trainEnv = env.AirSimDroneEnv(hp.ip,(hp.IMG_H,hp.IMG_W,3),train = True)
 
 NUM_ACTIONS = trainEnv.action_space.n 
 NUM_STATES = trainEnv.observation_space.shape[0]
