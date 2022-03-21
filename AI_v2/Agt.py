@@ -60,7 +60,7 @@ class Agent():
             reward_list.append(tot_reward)
             #self.graphing(reward_list,i)
             
-
+    # 维护图像的序列，用于放入3d卷积
     def pushQueue(self,que,newImg):
         que = self.inputQue[1:]
         que.append(newImg)
@@ -72,10 +72,10 @@ class Agent():
     def getInputPos(self):
         return torch.tensor(data = np.array(self.posQue,dtype=float)
                 ,device=self.device,dtype=torch.float)
-
+    # 可视化reward
     def graphing(self,reward_list,i):
         self.ax.set_xlim(0,i)
-        self.ax.plot(reward_list, 'g-', label='total_loss')
+        self.ax.plot(reward_list, 'g-', label='reawrd')
         plt.pause(0.001)
 
     def save(self):

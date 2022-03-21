@@ -65,7 +65,7 @@ class Actor_Net(nn.Module):
         x = x.view(x.size(0),-1)
         x = self.fc(x)
         y = self.pos(y)
-        m = torch.cat([x,y],dim=1)
+        m = torch.cat([x,y],dim=1) #将抽象后的视觉信息与位置信息拼接
         #print(m.size())
         a = self.advantage(m)
         v = self.value(m)
@@ -85,24 +85,25 @@ class DuelingDQN():
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=hp.LR)
         self.lossFn = nn.MSELoss().to(self.device)
 
-    def getDepth(self,Img):
+    def getDepth(self,Img): #此处现已废弃。原本是用作图像转深度图
         return DepthPredict.forward(Img)
 
     def predict(self,input):
+        # 使得随机程度随着训练的进行下降
         eps = (self.EpisodeCnt/hp.EPISODES)+0.3
         #print(eps)
         #eps = 1
         Img,pos = input
-        if np.random.rand() <= eps:# greedy
+        if np.random.rand() <= eps:# 选择贪心
             action_value = self.eval_net.forward(Img,pos)
             action = torch.max(action_value.cpu(), 1)[1].data.numpy()
             action = action[0] if self.env_a_shape == 0 else action.reshape(self.env_a_shape)
-        else: # random
+        else: # 选择随机策略
             action = np.random.randint(0,self.num_actions)
             action = action if self.env_a_shape ==0 else action.reshape(self.env_a_shape)
         return action
 
-    def visiual_learn(self,envState):
+    def visiual_learn(self,envState): #已废弃，训练图像转深度图的方法
         pass
     
     def actor_learn(self,replay):

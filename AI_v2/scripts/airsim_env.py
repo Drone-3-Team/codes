@@ -7,17 +7,18 @@ import hp
 class AirSimDroneEnv(gym.Env):
     def __init__(self, ip_address, image_shape, env_config):
         self.image_shape = image_shape
-        self.sections = env_config["sections"]
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=self.image_shape, dtype=np.uint8)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=self.image_shape, dtype=np.uint8)#图像通道
         self.action_space = gym.spaces.Discrete(6)
-
-        self.info = {"collision": False}
 
         self.collision_time = 0
         self.random_start = True
+        self.active_bomb = False
         self.setup_flight()
+
+        self.spd  = 0
+        self.yawspd = 0
 
     def step(self, action):
         self.do_action(action)
@@ -26,6 +27,9 @@ class AirSimDroneEnv(gym.Env):
         return obs, reward, done
 
     def reset(self):
+        if self.active_bomb:
+            self.bomb()
+        self.active_bomb = False
         self.setup_flight()
         obs = self.get_obs()
         return obs
@@ -38,70 +42,42 @@ class AirSimDroneEnv(gym.Env):
         self.drone.enableApiControl(True)
         self.drone.armDisarm(True)
 
-        # Prevent drone from falling after reset
+        # 无控制是悬停
         self.drone.moveToZAsync(-1, 1)
 
-        # Get collision time stamp
+        # 获取碰撞
         self.collision_time = self.drone.simGetCollisionInfo().time_stamp
-
-        # Get a random section
-        if self.random_start == True:
-            self.target_pos_idx = np.random.randint(len(self.sections))
-        else:
-            self.target_pos_idx = 0
-
-        section = self.sections[self.target_pos_idx]
-        self.agent_start_pos = section["offset"][0]
-        self.target_pos = section["target"]
-
-        # Start the agent at random section at a random yz position
-        #y_pos, z_pos = ((np.random.rand(1,2)-0.5)*2).squeeze()
-        #pose = airsim.Pose(airsim.Vector3r(self.agent_start_pos,y_pos,z_pos))
-        #self.drone.simSetVehiclePose(pose=pose, ignore_collision=True)
-        
-        # Get target distance for reward calculation
-        #self.target_dist_prev = np.linalg.norm(np.array([y_pos, z_pos]) - self.target_pos)
-
     
+    # 根据智能体作出的选择，修改airsim环境中的飞机速度
     def do_action(self, select_action):
-        speed = 2
-        yaw_speed = 10
         if select_action == 0:
-            vx = 0
-            vz = speed*0.5
-            vyaw = 0
+            dv = 0
+            dvyaw = 0
         elif select_action == 1:
-            vx = 0
-            vz = -speed*0.5
-            vyaw = 0
+            dv = 0.1
+            dvyaw = 0
         elif select_action == 2:
-            vx = speed
-            vz = 0
-            vyaw = 0
+            dv = -0.1
+            dvyaw = 0
         elif select_action == 3:
-            vx = speed*0.5
-            vz = 0
-            vyaw = 0
+            dv = 0
+            dvyaw = 10
         elif select_action == 4:
-            vx = 0
-            vz = 0
-            vyaw = yaw_speed
+            dv = 0
+            dvyaw = -10
         elif select_action == 5:
-            vx = 0
-            vz = 0
-            vyaw = -yaw_speed
+            dv = -self.spd
+            dvyaw = -self.yawspd
 
+        self.spd += dv
+        self.yawspd += dvyaw
 
-        # Execute action
-        self.drone.moveByVelocityBodyFrameAsync(vx, 0, vz, duration=1).join()
-        self.drone.rotateByYawRateAsync(vyaw, duration = 1).join()
+        # 执行
+        self.drone.moveByVelocityBodyFrameAsync(dv, 0, self.spd, duration=1).join()
+        self.drone.rotateByYawRateAsync(self.yawspd, duration = 1).join()
 
-        # # Prevent swaying
-        self.drone.moveByVelocityAsync(vx=0, vy=0, vz=0, duration=0.1)
-        self.drone.rotateByYawRateAsync(yaw_rate = 0, duration=0.1)
-
+    # 获取观测信息。观测信息包含：图像、与目标的相对位置
     def get_obs(self):
-        self.info["collision"] = self.is_collision()
         obs = self.get_rgb_image()
         x,y,z =  self.drone.simGetVehiclePose().position
         w_val,x_val,y_val,z_val = self.drone.simGetVehiclePose().orientation
@@ -110,6 +86,7 @@ class AirSimDroneEnv(gym.Env):
         z -= hp.tar_pos[2]
         return obs,[x,y,z,w_val,x_val,y_val,z_val]
 
+    # 计算奖励函数。奖励函数原则：当抵达20距离内成功得100分，当坠机、被发现失败得-100分，其他情况下得1000/距离 分
     def compute_reward(self):
         reward = 0
         done = 0
@@ -124,18 +101,28 @@ class AirSimDroneEnv(gym.Env):
         if(dis < 20):
             done = 1
             reward = 100
-        elif(self.is_collision() or z>450):
+        elif(self.is_collision() or self.is_captured()):
             done = 1
             reward = -100
         else:
-            reward = -dis
+            reward = 1000/dis
 
         return reward, done
 
+    # 坠机
     def is_collision(self):
         current_collision_time = self.drone.simGetCollisionInfo().time_stamp
         return True if current_collision_time != self.collision_time else False
+
+    #被捕
+    def is_captured(self):
+        # 记得active——bomb
+        pass
+
+    def bomb():
+        pass
     
+    #通过airsim获取RGB观测
     def get_rgb_image(self):
         rgb_image_request = airsim.ImageRequest('0', airsim.ImageType.Scene, False, False)
         responses = self.drone.simGetImages([rgb_image_request])
@@ -148,6 +135,7 @@ class AirSimDroneEnv(gym.Env):
         except:
             return np.zeros((self.image_shape))
 
+    #通过airsim获取深度图
     def get_depth_image(self, thresh = 2.0):
         depth_image_request = airsim.ImageRequest('0', airsim.ImageType.DepthPerspective, True, False)
         responses = self.drone.simGetImages([depth_image_request])
@@ -156,39 +144,3 @@ class AirSimDroneEnv(gym.Env):
         depth_image[depth_image>thresh]=thresh
         return depth_image
 
-
-class TestEnv(AirSimDroneEnv):
-    def __init__(self, ip_address, image_shape, env_config):
-        self.eps_n = 0
-        super(TestEnv, self).__init__(ip_address, image_shape, env_config)
-        self.agent_traveled = []
-        self.random_start = False
-
-    def setup_flight(self):
-        super(TestEnv, self).setup_flight()
-        self.eps_n += 1
-
-        # Start the agent at a random yz position
-        y_pos, z_pos = (0,0)
-        pose = airsim.Pose(airsim.Vector3r(self.agent_start_pos,y_pos,z_pos))
-        self.drone.simSetVehiclePose(pose=pose, ignore_collision=True)
-        
-    def compute_reward(self):
-        reward = 0
-        done = 0
-
-        x,_,_ = self.drone.simGetVehiclePose().position
-
-        if self.is_collision():
-            done = 1
-            self.agent_traveled.append(x)
-    
-        if done and self.eps_n % 5 == 0:
-            print("---------------------------------")
-            print("> Total episodes:", self.eps_n)
-            print("> Flight distance (mean): %.2f" % (np.mean(self.agent_traveled)))
-            print("> Holes reached (max):", int(np.max(self.agent_traveled)//4))
-            print("> Holes reached (mean):", int(np.mean(self.agent_traveled)//4))
-            print("---------------------------------\n")
-        
-        return reward, done

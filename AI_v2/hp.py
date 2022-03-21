@@ -15,15 +15,18 @@ Q_NETWORK_ITERATION = 128
 MAX_ROUND = 1000
 
 EPISODES = 1000
-IN_DEPTH = 1
-IMG_H = 50
+IN_DEPTH = 1 #3d卷积深度
+IMG_H = 50 #图像长宽
 IMG_W = 50
 
 path = './'
 ip = '127.0.0.1'
+env_communicate_path = '' # 环境的路径。用于与环境“被敌机发现”的路径通信，这里使用一个文件以及锁机制实现
 
+#目标位置
 tar_pos = [-1870,-454,410]
 
+#将RGB转为灰度图并归一化
 def RGB2Gray(RGBArray):
     gray_array = np.zeros(shape = (IMG_H,IMG_W),dtype=float)
     gray_array += RGBArray[:,:,0]
@@ -33,6 +36,7 @@ def RGB2Gray(RGBArray):
     return gray_array
 
 
+#经验回放池
 class ExpReplay:
     def __init__(self,device) -> None:
         self.stateMem = np.zeros(shape=(MEMORY_CAPACITY+1,IN_DEPTH,IMG_H,IMG_W),dtype=float)
